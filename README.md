@@ -203,18 +203,6 @@ Pour un déploiement en production, vous pouvez utiliser Gunicorn :
 gunicorn -w 4 -b 0.0.0.0:5000 "app:create_app()"
 ```
 
-## Développement
-
-### Ajouter de nouvelles fonctionnalités
-
-1. Pour ajouter une nouvelle route, créez un nouveau fichier dans le dossier `app/routes/`
-2. Implémentez la logique métier dans un service dans `app/services/`
-3. Enregistrez votre nouveau blueprint dans `app/__init__.py`
-
-### Tests
-
-Les tests unitaires peuvent être ajoutés dans un dossier `tests/` (à créer).
-
 ## Licence
 
-[Insérer la licence ici]
+Propriétaire - USTS.ai 2025
