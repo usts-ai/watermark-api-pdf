@@ -1,5 +1,6 @@
 import os
 import tempfile
+import io
 from flask import Blueprint, request, jsonify, send_file
 from app.services.watermark_service import apply_watermark_to_pdf
 
@@ -79,3 +80,56 @@ def apply_watermark():
         if is_image and watermark_file_path and os.path.exists(watermark_file_path):
             os.remove(watermark_file_path)
         # Le fichier de sortie sera supprimé après l'envoi
+
+@watermark_bp.route('/watermark/binary', methods=['POST'])
+def apply_watermark_binary():
+    """
+    Endpoint pour appliquer un filigrane à un PDF envoyé en binaire.
+    
+    Le PDF est attendu directement dans le corps de la requête au format binaire.
+    Les paramètres du filigrane sont attendus dans les query params:
+    - text: Le texte à utiliser comme filigrane
+    - pattern: Le motif à utiliser (grid ou insert) (optionnel, défaut: grid)
+    - Autres options comme opacity, angle, etc.
+    """
+    # Vérifier si le corps de la requête contient des données
+    if not request.data:
+        return jsonify({"error": "Aucune donnée binaire n'a été fournie"}), 400
+    
+    # Créer un objet fichier à partir des données binaires
+    pdf_file = io.BytesIO(request.data)
+    
+    # Vérifier si le texte du filigrane a été fourni
+    if 'text' not in request.args:
+        return jsonify({"error": "Le texte du filigrane n'a pas été fourni"}), 400
+    
+    watermark_content = request.args.get('text')
+    pattern = request.args.get('pattern', 'grid')
+    
+    if pattern not in ['grid', 'insert']:
+        return jsonify({"error": "Le motif doit être 'grid' ou 'insert'"}), 400
+    
+    # Extraire toutes les options des query params
+    options = {key: value for key, value in request.args.items() 
+               if key not in ['text', 'pattern']}
+    
+    try:
+        # Appliquer le filigrane
+        output_path, is_temp = apply_watermark_to_pdf(
+            pdf_file=pdf_file,
+            watermark_content=watermark_content,
+            is_image=False,
+            pattern=pattern,
+            options=options
+        )
+        
+        # Renvoyer le fichier PDF avec le filigrane
+        return send_file(
+            output_path,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name="watermarked_document.pdf"
+        )
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

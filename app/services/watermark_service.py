@@ -1,13 +1,14 @@
 import os
 import tempfile
 import subprocess
+import io
 
 def apply_watermark_to_pdf(pdf_file, watermark_content, is_image=False, pattern='grid', options=None):
     """
     Applique un filigrane à un fichier PDF.
     
     Args:
-        pdf_file: Le fichier PDF à traiter
+        pdf_file: Le fichier PDF à traiter (FileStorage ou BytesIO)
         watermark_content: Le texte ou le chemin vers l'image du filigrane
         is_image: Indique si le filigrane est une image
         pattern: Le motif à utiliser ('grid' ou 'insert')
@@ -21,7 +22,17 @@ def apply_watermark_to_pdf(pdf_file, watermark_content, is_image=False, pattern=
     
     # Créer un fichier temporaire pour l'entrée
     with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as input_temp:
-        pdf_file.save(input_temp.name)
+        # Gérer différents types d'objets de fichier
+        if hasattr(pdf_file, 'save'):
+            # Pour les objets FileStorage (request.files)
+            pdf_file.save(input_temp.name)
+        elif isinstance(pdf_file, io.BytesIO) or hasattr(pdf_file, 'read'):
+            # Pour les objets BytesIO ou tout objet avec une méthode read()
+            pdf_file.seek(0)  # Remettre le curseur au début
+            input_temp.write(pdf_file.read())
+        else:
+            raise TypeError("Le type de fichier PDF n'est pas pris en charge")
+            
         input_path = input_temp.name
     
     # Créer un fichier temporaire pour la sortie

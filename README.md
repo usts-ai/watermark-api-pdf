@@ -73,7 +73,7 @@ Accédez à la racine de l'API pour voir la documentation complète :
 GET /
 ```
 
-### Application d'un filigrane
+### Application d'un filigrane (multipart/form-data)
 
 ```
 POST /watermark
@@ -120,11 +120,38 @@ POST /watermark
 | y | Float | Position verticale du filigrane (entre 0 et 1) | Non |
 | horizontal_alignment | String | Alignement horizontal ('left', 'right', 'center') | Non |
 
+### Application d'un filigrane (données binaires)
+
+```
+POST /watermark/binary
+```
+
+Ce nouvel endpoint permet d'envoyer le PDF directement en binaire dans le corps de la requête, au lieu d'utiliser multipart/form-data. Les paramètres du filigrane sont passés via les query parameters dans l'URL.
+
+#### En-têtes requis
+
+| En-tête | Valeur |
+|---------|--------|
+| Content-Type | application/octet-stream |
+
+#### Corps de la requête
+
+Le corps de la requête doit contenir les données binaires du PDF à traiter.
+
+#### Query parameters
+
+| Paramètre | Type | Description | Obligatoire |
+|-----------|------|-------------|-------------|
+| text | String | Le texte à utiliser comme filigrane | Oui |
+| pattern | String | Le motif à utiliser: 'grid' ou 'insert'. Défaut: 'grid' | Non |
+
+Toutes les options communes et spécifiques aux motifs mentionnées ci-dessus peuvent également être passées en tant que query parameters.
+
 ## Exemples d'utilisation
 
 ### Avec cURL
 
-#### Filigrane texte en grille
+#### Filigrane texte en grille (multipart/form-data)
 
 ```bash
 curl -X POST \
@@ -138,7 +165,17 @@ curl -X POST \
   -o document_avec_filigrane.pdf
 ```
 
-#### Filigrane texte à position spécifique
+#### Filigrane texte en grille (données binaires)
+
+```bash
+curl -X POST \
+  --data-binary @chemin/vers/votre/document.pdf \
+  -H "Content-Type: application/octet-stream" \
+  "http://localhost:5000/watermark/binary?text=CONFIDENTIEL&pattern=grid&opacity=0.3&angle=45&text_color=%23FF0000" \
+  -o document_avec_filigrane.pdf
+```
+
+#### Filigrane texte à position spécifique (multipart/form-data)
 
 ```bash
 curl -X POST \
@@ -149,6 +186,16 @@ curl -X POST \
   -F "y=0.5" \
   -F "horizontal_alignment=center" \
   http://localhost:5000/watermark \
+  -o document_avec_filigrane.pdf
+```
+
+#### Filigrane texte à position spécifique (données binaires)
+
+```bash
+curl -X POST \
+  --data-binary @chemin/vers/votre/document.pdf \
+  -H "Content-Type: application/octet-stream" \
+  "http://localhost:5000/watermark/binary?text=CONFIDENTIEL&pattern=insert&x=0.5&y=0.5&horizontal_alignment=center" \
   -o document_avec_filigrane.pdf
 ```
 
@@ -165,6 +212,8 @@ curl -X POST \
 ```
 
 ### Avec Python (requests)
+
+#### Utilisation avec multipart/form-data
 
 ```python
 import requests
@@ -186,6 +235,30 @@ data = {
 }
 
 response = requests.post(url, files=files, data=data)
+
+if response.status_code == 200:
+    with open("document_avec_filigrane.pdf", "wb") as f:
+        f.write(response.content)
+    print("Document avec filigrane enregistré avec succès.")
+else:
+    print(f"Erreur: {response.json()}")
+```
+
+#### Utilisation avec données binaires
+
+```python
+import requests
+
+# URL avec les paramètres du filigrane en query parameters
+url = "http://localhost:5000/watermark/binary?text=CONFIDENTIEL&pattern=grid&opacity=0.3&angle=45&text_color=%23FF0000"
+
+# Lire le fichier PDF en binaire
+with open("chemin/vers/votre/document.pdf", "rb") as f:
+    pdf_data = f.read()
+
+# Envoyer la requête avec les données binaires
+headers = {"Content-Type": "application/octet-stream"}
+response = requests.post(url, data=pdf_data, headers=headers)
 
 if response.status_code == 200:
     with open("document_avec_filigrane.pdf", "wb") as f:
