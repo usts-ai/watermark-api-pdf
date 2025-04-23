@@ -1,5 +1,5 @@
 # Utiliser une image Python officielle comme base
-FROM python:3.9-slim
+FROM python:3.9-slim AS builder
 
 # Définir le répertoire de travail
 WORKDIR /app
